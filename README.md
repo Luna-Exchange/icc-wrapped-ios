@@ -59,7 +59,7 @@ webView.navigateToICCAction = { viewController in
 
 ### Sign In/Out Callbacks
 ```swift
-webView.signInWithIccCompletion = { success in
+webView.StayInTheGameCompletion = { success in
     // Handle sign-in result
 }
 
