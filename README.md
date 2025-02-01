@@ -36,28 +36,15 @@ let userData = UserData(
 iccWrappedSDK.update(userData: userData)
 ```
 
-### Logout
-```swift
-iccWrappedSDK.logout {
-    // Handle post-logout actions
-}
-```
+
 
 ### Environment Setup
 The SDK supports two environments:
 - Development (.development)
 - Production (.production)
 
-## Callbacks and Delegates
 
-### Navigation Callback
-```swift
-webView.navigateToICCAction = { viewController in
-    // Handle navigation
-}
-```
-
-### Sign In/Out Callbacks
+### Callbacks
 ```swift
 webView.StayInTheGameCompletion = { success in
     // Handle sign-in result
