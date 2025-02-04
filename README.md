@@ -1,57 +1,123 @@
-Here's a README documentation for the ICC Wrapped SDK:
+# ICC Wrapped iOS SDK
 
-# ICC Wrapped SDK
+ICC Wrapped SDK allows you to integrate ICC's wrapped experience into your iOS application.
 
-## Overview
-The ICC Wrapped SDK is a Swift framework that provides a seamless integration for ICC's web-based services into iOS applications. It includes functionality for authentication, web content display, and handling deep links.
+## Requirements
+- iOS 13.0+
+- Swift 5.0+
+- Xcode 13.0+
 
-## Features
-- Web content integration using WKWebView
-- Authentication token handling and encryption
-- Environment-specific configuration (Development/Production)
+## Installation
 
+### Swift Package Manager
 
+The ICC Wrapped SDK is available through [Swift Package Manager](https://github.com/Luna-Exchange/icc-wrapped-ios.git).
 
-### Initialization
-```swift
-// Initialize the SDK with required URLs
-let urls = URLS(
-    fantasy: "your_fantasy_url",
-    predictor: "your_predictor_url",
-    iccBaseURL: "your_icc_base_url"
-)
-
-// Create an instance of ICCWebView
-let webView = ICCWebView(environment: .development, urls: urls)
-```
-
-### User Authentication
-```swift
-// Update user data
-let userData = UserData(
-    token: "user_token",
-    name: "User Name",
-    email: "user@example.com"
-)
-iccWrappedSDK.update(userData: userData)
-```
+1. In Xcode, select **File** → **Add Packages...**
+2. Enter the following URL in the search field:
+3. Select the version you want to use
+4. Click **Add Package**
 
 
+swift
+dependencies: [
+.package(url: "https://github.com/Luna-Exchange/icc-wrapped-ios.git", from: "1.0.0")
+]
 
-### Environment Setup
+## Quick Start Guide
+
+### 1. Import the SDK
+
+### 2. Initialize and Present ICC Wrapped
+
+swift
+class YourViewController: UIViewController {
+    func showICCWrapped() {
+    // Create user object
+        let user = ICCWrapped.User(
+        token: "your_auth_token",
+        name: "User Name",
+        email: "user@example.com"
+    )
+// Launch ICC Wrapped
+ICCWrapped.launch(
+    from: self,
+    user: user,
+    environment: .production,
+    stayInGameUri: "your_stay_in_game_url"
+) {
+print("ICC Wrapped presented successfully")
+}
+}
+}
+## Complete Integration Example
+
+Here's a complete example showing how to integrate ICC Wrapped into your app:
+swift
+import UIKit
+import iccwrapped
+class MainViewController: UIViewController {
+    // MARK: - Properties
+        private lazy var launchButton: UIButton = {
+            let button = UIButton(type: .system)
+            button.setTitle("Launch ICC Wrapped", for: .normal)
+            button.addTarget(self, action: #selector(launchICCWrapped), for: .touchUpInside)
+            return button
+        }()
+    // MARK: - Lifecycle
+        override func viewDidLoad() {
+            super.viewDidLoad()
+            setupUI()
+        }
+    // MARK: - UI Setup
+    private func setupUI() {
+        view.addSubview(launchButton)
+        // Setup constraints
+        launchButton.translatesAutoresizingMaskIntoConstraints = false
+        NSLayoutConstraint.activate([
+        launchButton.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+        launchButton.centerYAnchor.constraint(equalTo: view.centerYAnchor)
+    ])
+    }
+    // MARK: - Actions
+    @objc private func launchICCWrapped() {
+        guard let userData = getCurrentUser() else {
+        showError("User not logged in")
+        return
+    }
+    let user = ICCWrapped.User(
+        token: userData.token,
+        name: userData.name,
+        email: userData.email
+    )
+    ICCWrapped.launch(
+        from: self,
+        user: user,
+        environment: .production,
+        stayInGameUri: "https://your-stay-in-game-url.com"
+    )  {
+        print("ICC Wrapped launched successfully")
+    }
+}
+
+
+## Environment Configuration
+
 The SDK supports two environments:
-- Development (.development)
-- Production (.production)
-
-
-### Callbacks
-```swift
-webView.StayInTheGameCompletion = { success in
-    // Handle sign-in result
+swift
+public enum Environment {
+    case development
+    case production
 }
+- Use `.development` for testing
+- Use `.production` for release builds
 
-webView.signOutToIccCompletion = { success in
-    // Handle sign-out result
-}
-```
+## User Object
 
+The User object requires the following parameters:
+swift
+let user = ICCWrapped.User(
+    token: String, // Authentication token
+    name: String, // User's name
+    email: String // User's email
+)
