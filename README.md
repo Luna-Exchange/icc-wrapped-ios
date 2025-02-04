@@ -33,14 +33,14 @@ dependencies: [
 import UIKit
 import ICCWrapped
 
-class YourViewController: UIViewController {
+_class YourViewController: UIViewController {
     func showICCWrapped() {
         // Create user object
         let user = ICCWrapped.User(
             token: "your_auth_token",
             name: "User Name",
             email: "user@example.com"
-        )
+        )_
 
         // Launch ICC Wrapped
         ICCWrapped.launch(
@@ -59,14 +59,14 @@ Here's a complete example showing how to integrate ICC Wrapped into your app:
 import UIKit
 import iccwrapped
 
-class MainViewController: UIViewController {
+_class MainViewController: UIViewController {
     // MARK: - Properties
     private lazy var launchButton: UIButton = {
         let button = UIButton(type: .system)
         button.setTitle("Launch ICC Wrapped", for: .normal)
         button.addTarget(self, action: #selector(launchICCWrapped), for: .touchUpInside)
         return button
-    }()
+    }()_
     
     // MARK: - Lifecycle
     override func viewDidLoad() {
