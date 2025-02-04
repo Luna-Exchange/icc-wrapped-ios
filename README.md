@@ -30,73 +30,81 @@ dependencies: [
 
 ### 2. Initialize and Present ICC Wrapped
 
-swift
+import UIKit
+import ICCWrapped
+
 class YourViewController: UIViewController {
     func showICCWrapped() {
-    // Create user object
+        // Create user object
         let user = ICCWrapped.User(
-        token: "your_auth_token",
-        name: "User Name",
-        email: "user@example.com"
-    )
-// Launch ICC Wrapped
-ICCWrapped.launch(
-    from: self,
-    user: user,
-    environment: .production,
-    stayInGameUri: "your_stay_in_game_url"
-) {
-print("ICC Wrapped presented successfully")
-}
-}
+            token: "your_auth_token",
+            name: "User Name",
+            email: "user@example.com"
+        )
+
+        // Launch ICC Wrapped
+        ICCWrapped.launch(
+            from: self,
+            user: user,
+            environment: .production,
+            stayInGameUri: "your_stay_in_game_url"
+        ) {
+            print("ICC Wrapped presented successfully")
+        }
+    }
 }
 ## Complete Integration Example
 
 Here's a complete example showing how to integrate ICC Wrapped into your app:
-swift
 import UIKit
 import iccwrapped
+
 class MainViewController: UIViewController {
     // MARK: - Properties
-        private lazy var launchButton: UIButton = {
-            let button = UIButton(type: .system)
-            button.setTitle("Launch ICC Wrapped", for: .normal)
-            button.addTarget(self, action: #selector(launchICCWrapped), for: .touchUpInside)
-            return button
-        }()
+    private lazy var launchButton: UIButton = {
+        let button = UIButton(type: .system)
+        button.setTitle("Launch ICC Wrapped", for: .normal)
+        button.addTarget(self, action: #selector(launchICCWrapped), for: .touchUpInside)
+        return button
+    }()
+    
     // MARK: - Lifecycle
-        override func viewDidLoad() {
-            super.viewDidLoad()
-            setupUI()
-        }
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        setupUI()
+    }
+    
     // MARK: - UI Setup
     private func setupUI() {
         view.addSubview(launchButton)
-        // Setup constraints
         launchButton.translatesAutoresizingMaskIntoConstraints = false
         NSLayoutConstraint.activate([
-        launchButton.centerXAnchor.constraint(equalTo: view.centerXAnchor),
-        launchButton.centerYAnchor.constraint(equalTo: view.centerYAnchor)
-    ])
+            launchButton.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+            launchButton.centerYAnchor.constraint(equalTo: view.centerYAnchor)
+        ])
     }
+    
     // MARK: - Actions
     @objc private func launchICCWrapped() {
         guard let userData = getCurrentUser() else {
-        showError("User not logged in")
-        return
-    }
-    let user = ICCWrapped.User(
-        token: userData.token,
-        name: userData.name,
-        email: userData.email
-    )
-    ICCWrapped.launch(
-        from: self,
-        user: user,
-        environment: .production,
-        stayInGameUri: "https://your-stay-in-game-url.com"
-    )  {
-        print("ICC Wrapped launched successfully")
+            showError("User not logged in")
+            return
+        }
+        
+        let user = ICCWrapped.User(
+            token: userData.token,
+            name: userData.name,
+            email: userData.email
+        )
+        
+        ICCWrapped.launch(
+            from: self,
+            user: user,
+            environment: .production,
+            stayInGameUri: "https://your-stay-in-game-url.com"
+        ) {
+            print("ICC Wrapped launched successfully")
+        }
     }
 }
 
