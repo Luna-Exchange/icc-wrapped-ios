@@ -53,64 +53,57 @@ class YourViewController: UIViewController {
         }
     }
 }
-## Complete Integration Example
+```
 
-Here's a complete example showing how to integrate ICC Wrapped into your app:
+### 2. Handle "Stay in the Game" Callback
 
 ```swift
-import UIKit
-import ICCWrapped
-
 class YourViewController: UIViewController {
-    func showICCWrapped() {
-        // Create user object
-        let user = ICCWrapped.User(
-            token: "your_auth_token",
+    func launchWrapped() {
+        // Create the ICCWebView instance
+        let urls = URLS(stayinthegame: "your-stay-in-game-uri")
+        let webViewController = ICCWebView(environment: .production, urls: urls)
+        
+        // Set up the Stay in the Game callback
+        webViewController.navigateToStayInTheGame = { [weak self] viewController in
+            // Handle navigation to Stay in the Game
+            self?.handleStayInTheGame(from: viewController)
+        }
+        
+        // Set up close callback if needed
+        webViewController.closeTheWrapped = { success in
+            if success {
+                // Handle successful closure
+                self.dismiss(animated: true)
+            }
+        }
+        
+        // Update user data and present
+        let userData = UserData(
+            token: "your-auth-token",
             name: "User Name",
             email: "user@example.com"
         )
-    }
-}
-    
-    // MARK: - Lifecycle
-    override func viewDidLoad() {
-        super.viewDidLoad()
-        setupUI()
+        iccWrappedSDK.update(userData: userData)
+        webViewController.presentAndHandleCallbacks(from: self)
     }
     
-    // MARK: - UI Setup
-    private func setupUI() {
-        view.addSubview(launchButton)
-        launchButton.translatesAutoresizingMaskIntoConstraints = false
-        NSLayoutConstraint.activate([
-            launchButton.centerXAnchor.constraint(equalTo: view.centerXAnchor),
-            launchButton.centerYAnchor.constraint(equalTo: view.centerYAnchor)
-        ])
-    }
-    
-    // MARK: - Actions
-    @objc private func launchICCWrapped() {
-        guard let userData = getCurrentUser() else {
-            showError("User not logged in")
-            return
-        }
-        
-        let user = ICCWrapped.User(
-            token: userData.token,
-            name: userData.name,
-            email: userData.email
-        )
-        
-        ICCWrapped.launch(
-            from: self,
-            user: user,
-            environment: .production,
-            stayInGameUri: "https://your-stay-in-game-url.com"
-        ) {
-            print("ICC Wrapped launched successfully")
+    private func handleStayInTheGame(from viewController: UIViewController) {
+        // Dismiss the current wrapped view
+        viewController.dismiss(animated: true) { [weak self] in
+            // Navigate to your Stay in the Game screen
+            self?.navigateToStayInTheGame()
         }
     }
+    
+    private func navigateToStayInTheGame() {
+        // Implement your navigation logic here
+        // For example:
+        let stayInGameVC = StayInGameViewController()
+        self.navigationController?.pushViewController(stayInGameVC, animated: true)
+    }
 }
+```
 
 
 ## Environment Configuration
