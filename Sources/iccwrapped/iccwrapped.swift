@@ -398,7 +398,7 @@ public class ICCWrapped {
         var baseUrl: String {
             switch self {
             case .development:
-                return "https://icc-wrapped-stg.insomnialabs.xyz"
+                return "https://icc-wrapped-frontend.vercel.app/"
             case .production:
                 return "https://wrapped.icc-cricket.com"
             }
