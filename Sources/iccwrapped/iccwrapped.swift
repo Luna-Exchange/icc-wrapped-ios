@@ -23,10 +23,6 @@ public class iccWrappedSDK {
             sharedWrappedView?.update(userData: userData)
         }
     }
-    
-    public static func logout(completion: @escaping () -> Void) {
-        sharedWrappedView?.clearLocalStorage(completion: completion)
-    }
 }
 public struct URLS {
     public let stayinthegame: String
@@ -97,10 +93,14 @@ public class ICCWebView: UIViewController, WKNavigationDelegate, WKScriptMessage
     private var callbackURL: String
     private var activityIndicator: UIActivityIndicatorView!
     private var backgroundImageView: UIImageView!
+    private var deepLinkURLStayInTheGame: String { urls.stayinthegame }
     
     public var authToken: String? { iccWrappedSDK.userData?.token }
     public var name: String? { iccWrappedSDK.userData?.name }
     public var email: String? { iccWrappedSDK.userData?.email }
+    
+    public typealias NavigateToICCAction = (UIViewController) -> Void
+    public var navigateToICCAction: NavigateToICCAction?
    
     public typealias NavigateToStayInTheGame = (UIViewController) -> Void
     public var navigateToStayInTheGame: NavigateToStayInTheGame?
@@ -157,12 +157,11 @@ public class ICCWebView: UIViewController, WKNavigationDelegate, WKScriptMessage
         
         let handler = Handler()
         handler.webView = self
-        // Add script message handler for 'navigateToIcc'
+       
         let userContentController = webView.configuration.userContentController
         userContentController.add(handler, name: "goToStayInTheGame")
         userContentController.add(handler, name: "closeIccWrapped")
         
-        // Set up Auto Layout constraints to make the webView full screen
         NSLayoutConstraint.activate([
             webView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             webView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
@@ -251,10 +250,13 @@ public class ICCWebView: UIViewController, WKNavigationDelegate, WKScriptMessage
         switch message.name {
         case "goToStayInTheGame":
             Logger.log("Received 'goToStayInTheGame' event")
-            navigateToStayInTheGame?(self)
+            openDeepLink(urlString: deepLinkURLStayInTheGame)
         case "closeIccWrapped":
             Logger.log("Received 'closeIccWrapped' event")
-            closeTheWrapped?(true)
+            navigateToICCAction?(self)
+        case "navigateToIcc":
+            Logger.log("Received 'navigate-to-icc' event")
+            navigateToICCAction?(self)
         default:
             Logger.log("Received unknown event: \(message.name)")
         }
@@ -288,13 +290,6 @@ public class ICCWebView: UIViewController, WKNavigationDelegate, WKScriptMessage
                 
                 self.loadURL(baseUrlString)
                 
-            }
-        }
-    public func clearLocalStorage(completion: @escaping () -> Void) {
-            let dataStore = webView.configuration.websiteDataStore
-            let dataTypes = Set([WKWebsiteDataTypeCookies, WKWebsiteDataTypeLocalStorage, WKWebsiteDataTypeSessionStorage, WKWebsiteDataTypeIndexedDBDatabases, WKWebsiteDataTypeWebSQLDatabases])
-            dataStore.fetchDataRecords(ofTypes: dataTypes) { records in
-                dataStore.removeData(ofTypes: dataTypes, for: records, completionHandler: completion)
             }
         }
     

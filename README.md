@@ -1,8 +1,20 @@
 # ICC Wrapped iOS SDK
 
-ICC Wrapped SDK allows you to integrate ICC's wrapped experience into your iOS application.
+[![Swift](https://img.shields.io/badge/Swift-5.0+-orange.svg)](https://swift.org)
+[![Platform](https://img.shields.io/badge/Platforms-iOS-green.svg)](https://www.apple.com/ios/)
+[![iOS](https://img.shields.io/badge/iOS-13.0+-blue.svg)](https://www.apple.com/ios/)
+
+ICC Wrapped SDK enables seamless integration of ICC's wrapped experience into iOS applications, providing a customizable web-based interface with native callbacks and navigation controls.
+
+## Table of Contents
+- [Requirements](#requirements)
+- [Installation](#installation)
+- [Integration Guide](#integration-guide)
+- [Configuration](#configuration)
+- [Callbacks](#callbacks)
 
 ## Requirements
+
 - iOS 13.0+
 - Swift 5.0+
 - Xcode 13.0+
@@ -13,116 +25,110 @@ ICC Wrapped SDK allows you to integrate ICC's wrapped experience into your iOS a
 
 The ICC Wrapped SDK is available through [Swift Package Manager](https://github.com/Luna-Exchange/icc-wrapped-ios.git).
 
-1. In Xcode, select **File** → **Add Packages...**
-2. Enter the following URL in the search field:
-3. Select the version you want to use
-4. Click **Add Package**
+## Integration Guide
 
+### Basic Implementation
 
-swift
-dependencies: [
-.package(url: "https://github.com/Luna-Exchange/icc-wrapped-ios.git", from: "1.0.0")
-]
-
-## Quick Start Guide
-
-### 1. Import the SDK
-
-### 2. Initialize and Present ICC Wrapped
-```
-import UIKit
-import ICCWrapped
-
-class YourViewController: UIViewController {
-    func showICCWrapped() {
-        // Create user object
-        let user = ICCWrapped.User(
-            token: "your_auth_token",
-            name: "User Name",
-            email: "user@example.com"
-        )_
-
-        // Launch ICC Wrapped
-        ICCWrapped.launch(
-            from: self,
-            user: user,
-            environment: .production,
-            stayInGameUri: "your_stay_in_game_url"
-        ) {
-            print("ICC Wrapped presented successfully")
-        }
-    }
-}
-```
-
-### 2. Handle "Stay in the Game" Callback
+1. Import the SDK:
 
 ```swift
-class YourViewController: UIViewController {
-    func launchWrapped() {
-        // Create the ICCWebView instance
-        let urls = URLS(stayinthegame: "your-stay-in-game-uri")
-        let webViewController = ICCWebView(environment: .production, urls: urls)
-        
-        // Set up the Stay in the Game callback
-        webViewController.navigateToStayInTheGame = { [weak self] viewController in
-            // Handle navigation to Stay in the Game
-            self?.handleStayInTheGame(from: viewController)
-        }
-        
-        // Set up close callback if needed
-        webViewController.closeTheWrapped = { success in
-            if success {
-                // Handle successful closure
-                self.dismiss(animated: true)
-            }
-        }
-        
-        // Update user data and present
-        let userData = UserData(
+import ICCWrapped
+```
+
+2. Create a basic integration:
+
+```swift
+class ExampleViewController: UIViewController {
+    private var user: ICCWrapped.User?
+    
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        setupUser()
+    }
+    
+    private func setupUser() {
+        user = ICCWrapped.User(
             token: "your-auth-token",
             name: "User Name",
             email: "user@example.com"
         )
-        iccWrappedSDK.update(userData: userData)
-        webViewController.presentAndHandleCallbacks(from: self)
     }
     
-    private func handleStayInTheGame(from viewController: UIViewController) {
-        // Dismiss the current wrapped view
-        viewController.dismiss(animated: true) { [weak self] in
-            // Navigate to your Stay in the Game screen
-            self?.navigateToStayInTheGame()
+    func launchICCWrapped() {
+        guard let user = user else { return }
+        
+        ICCWrapped.launch(
+            from: self,
+            user: user,
+            environment: .production,
+            stayInGameUri: "your-stay-in-game-uri://",
+            completion: {
+                print("ICC Wrapped launched successfully")
+            }
+        )
+        
+        // Set up callbacks after launch
+        if let iccWebView = iccWrappedSDK.sharedWrappedView {
+            setupCallbacks(for: iccWebView)
         }
-    }
-    
-    private func navigateToStayInTheGame() {
-        // Implement your navigation logic here
-        // For example:
-        let stayInGameVC = StayInGameViewController()
-        self.navigationController?.pushViewController(stayInGameVC, animated: true)
     }
 }
 ```
 
+## Configuration
 
-## Environment Configuration
+### Environment Settings
 
-The SDK supports two environments:
-swift
+```swift
 public enum Environment {
-    case development
-    case production
+    case development  // Uses staging URL
+    case production   // Uses production URL
 }
-- Use `.development` for testing
-- Use `.production` for release builds
+```
 
-## User Object
+### User Configuration
 
-The User object requires the following parameters:
-swift
+```swift
 let user = ICCWrapped.User(
-    token: String, // Authentication token
-    name: String, // User's name
-    email: String // User's email
+    token: "your-auth-token",    // Authentication token
+    name: "User Name",           // User's name
+    email: "user@example.com"    // User's email
 )
+```
+
+## Callbacks
+
+### Setting Up Callbacks
+
+```swift
+private func setupCallbacks(for iccWebView: ICCWebView) {
+    // Handle navigation to ICC
+    iccWebView.navigateToICCAction = { [weak self] viewController in
+        self?.handleNavigateToICC(from: viewController)
+    }
+    
+    // Handle navigation to Stay in the Game
+    iccWebView.navigateToStayInTheGame = { [weak self] viewController in
+        self?.handleNavigateToStayInTheGame(from: viewController)
+    }
+    
+    // Handle closing the wrapped view
+    iccWebView.closeTheWrapped = { [weak self] success in
+        self?.handleCloseWrapped(success: success)
+    }
+}
+
+private func handleNavigateToICC(from viewController: UIViewController) {
+    viewController.dismiss(animated: true) {
+        // Add your ICC navigation logic here
+    }
+}
+
+private func handleNavigateToStayInTheGame(from viewController: UIViewController) {
+    // Add your Stay in the Game navigation logic here
+}
+
+private func handleCloseWrapped(success: Bool) {
+    // Add your cleanup or post-close logic here
+}
+```
