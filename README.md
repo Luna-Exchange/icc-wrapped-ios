@@ -61,7 +61,7 @@ class ExampleViewController: UIViewController {
             from: self,
             user: user,
             environment: .production,
-            stayInGameUri: "your-stay-in-game-uri://",
+            stayInGameUri: "iccdev://stayinthegame",
             completion: {
                 print("ICC Wrapped launched successfully")
             }
@@ -94,6 +94,10 @@ let user = ICCWrapped.User(
     name: "User Name",           // User's name
     email: "user@example.com"    // User's email
 )
+```
+## URI to be pass
+```
+    stayInGameUri: "iccdev://stayinthegame"
 ```
 
 ## Callbacks
