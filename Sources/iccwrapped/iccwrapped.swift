@@ -6,7 +6,7 @@ import UIKit
 // swiftlint:disable all
 public class iccWrappedSDK {
     public static var enableLogging: Bool = false
-    static weak var sharedWrappedView: ICCWebView?
+    public static weak var sharedWrappedView: ICCWebView?
     static var userData: UserData?
     
     public static func handle(url: URL) -> Bool {
