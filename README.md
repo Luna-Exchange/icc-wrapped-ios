@@ -15,7 +15,7 @@ ICC Wrapped SDK enables seamless integration of ICC's wrapped experience into iO
 
 ## Requirements
 
-- iOS 13.0+
+- iOS 14.5+
 - Swift 5.0+
 - Xcode 13.0+
 
@@ -100,9 +100,16 @@ let user = ICCWrapped.User(
     stayInGameUri: "iccdev://stayinthegame"
 ```
 
+## Share and Download
+
+### 1. Share is handled Natively
+### 2. Download is also handled natively
+
+
 ## Callbacks
 
 ### Setting Up Callbacks
+####
 
 ```swift
 private func setupCallbacks(for iccWebView: ICCWebView) {
@@ -115,6 +122,10 @@ private func setupCallbacks(for iccWebView: ICCWebView) {
     iccWebView.navigateToStayInTheGame = { [weak self] viewController in
         self?.handleNavigateToStayInTheGame(from: viewController)
     }
+        // Handle navigation to Handle Login
+    iccWebView.signInWithIcc = { [weak self] viewController in
+        self?.handleSignInWithIcc(from: viewController)
+    }
     
     // Handle closing the wrapped view
     iccWebView.closeTheWrapped = { [weak self] success in
@@ -123,6 +134,12 @@ private func setupCallbacks(for iccWebView: ICCWebView) {
 }
 
 private func handleNavigateToICC(from viewController: UIViewController) {
+    viewController.dismiss(animated: true) {
+        // Add your ICC navigation logic here
+    }
+}
+    
+private func handleSignInWithIcc(from viewController: UIViewController) {
     viewController.dismiss(animated: true) {
         // Add your ICC navigation logic here
     }
