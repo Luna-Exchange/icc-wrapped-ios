@@ -270,9 +270,6 @@ public class ICCWebView: UIViewController, WKNavigationDelegate, WKScriptMessage
             window.addEventListener('login-icc', function() {
                 window.webkit.messageHandlers.loginIcc.postMessage(null);
                 });
-            window.addEventListener('download-icc-wrapped', function(event) {
-                window.webkit.messageHandlers.downloadIccWrapped.postMessage(null);
-                });
             // Handle base64 image downloads
             window.addEventListener('download-icc-wrapped', function(event) {
                 console.log('download-icc-wrapped event triggered');
@@ -336,15 +333,6 @@ public class ICCWebView: UIViewController, WKNavigationDelegate, WKScriptMessage
                     console.log('All event listeners registered');
             
         """
-        
-//        window.addEventListener('download-icc-wrapped', function(event) {
-//                    const imageUrl = event.detail ? event.detail.image : null;
-//                    console.log("Image URL:", imageUrl);
-//
-//                    window.webkit.messageHandlers.downloadIccWrapped.postMessage({
-//                        imageUrl: imageUrl
-//                    });
-//                });
 
         webView.evaluateJavaScript(script, completionHandler: nil)
 
@@ -381,195 +369,14 @@ public class ICCWebView: UIViewController, WKNavigationDelegate, WKScriptMessage
             Logger.log("Login Worked")
             //testDirectImageDownload()
             signInWithIcc?(true)
-        case "downloadIccWrapped":
-                Logger.log("Received 'downloadIccWrapped' event")
-                
-                // For regular image URLs
-                if let messageBody = message.body as? [String: Any],
-                   let imageUrlString = messageBody["imageUrl"] as? String,
-                   let imageUrl = URL(string: imageUrlString) {
-                    
-                    // Use direct download instead of WKDownload
-                    let session = URLSession.shared
-                    let task = session.dataTask(with: imageUrl) { [weak self] (data, response, error) in
-                        guard let self = self else { return }
-                        
-                        DispatchQueue.main.async {
-                            if let error = error {
-                                Logger.log("Download error: \(error.localizedDescription)")
-                                self.showAlert(title: "Download Failed", message: "Error: \(error.localizedDescription)")
-                                return
-                            }
-                            
-                            guard let data = data else {
-                                Logger.log("No data received")
-                                self.showAlert(title: "Download Failed", message: "No data received")
-                                return
-                            }
-                            
-                            if let image = UIImage(data: data) {
-                                self.requestPhotoLibraryPermission { granted in
-                                    if granted {
-                                        UIImageWriteToSavedPhotosAlbum(image, self, #selector(self.image(_:didFinishSavingWithError:contextInfo:)), nil)
-                                    } else {
-                                        self.showAlert(title: "Permission Denied", message: "Unable to save image without photo library access")
-                                    }
-                                }
-                            } else {
-                                Logger.log("Invalid image data")
-                                self.showAlert(title: "Download Failed", message: "Invalid image format")
-                            }
-                        }
-                    }
-                    task.resume()
-                } else {
-                    Logger.log("No valid image URL found in message")
-                    self.showAlert(title: "Download Failed", message: "No image URL received")
-                }
+
         case "downloadBase64Image":
                 Logger.log("Received 'downloadBase64Image' event")
-                
-                if let messageBody = message.body as? [String: Any],
-                   let base64String = messageBody["imageData"] as? String {
-                    
-                    Logger.log("Base64 string received (first 50 chars): \(String(base64String.prefix(50)))...")
-                    
-                    // Extract the base64 data - find the data after the comma in data:image/png;base64,
-                    if let range = base64String.range(of: ";base64,") {
-                        let dataStartIndex = range.upperBound
-                        let dataString = String(base64String[dataStartIndex...])
-                        
-                        Logger.log("Extracted base64 data (length: \(dataString.count))")
-                        
-                        // Convert base64 to Data
-                        if let imageData = Data(base64Encoded: dataString) {
-                            Logger.log("Successfully converted to data (size: \(imageData.count) bytes)")
-                            
-                            // Create image from data
-                            if let image = UIImage(data: imageData) {
-                                Logger.log("Successfully created image of size: \(image.size)")
-                                
-                                // Save to photos
-                                self.requestPhotoLibraryPermission { granted in
-                                    if granted {
-                                        Logger.log("Photo library permission granted, saving image")
-                                        UIImageWriteToSavedPhotosAlbum(image, self, #selector(self.image(_:didFinishSavingWithError:contextInfo:)), nil)
-                                    } else {
-                                        Logger.log("Photo library permission denied")
-                                        self.showAlert(title: "Permission Denied", message: "Unable to save image without photo library access")
-                                    }
-                                }
-                            } else {
-                                Logger.log("Failed to create image from base64 data")
-                                self.showAlert(title: "Download Failed", message: "Invalid image format")
-                            }
-                        } else {
-                            Logger.log("Invalid base64 data")
-                            self.showAlert(title: "Download Failed", message: "Invalid image data")
-                        }
-                    } else {
-                        Logger.log("Invalid base64 image format - no ;base64, marker found")
-                        self.showAlert(title: "Download Failed", message: "Invalid image format")
-                    }
-                } else {
-                    Logger.log("No valid base64 data found in message")
-                    self.showAlert(title: "Download Failed", message: "No image data received")
-                }
         
         default:
             Logger.log("Received unknown event: \(message.name)")
         }
     }
-    
-//case "downloadIccWrapped":
-    //Logger.log("Received 'downloadIccWrapped' event")
-    //Logger.log("Message body: \(String(describing: message.body))")
-//
-//            // Extract the image URL from the message body
-//            if let messageBody = message.body as? [String: Any] {
-//                Logger.log("Message body parsed as dictionary")
-//
-//                if let imageUrlString = messageBody["imageUrl"] as? String {
-//                    Logger.log("Image URL string: \(imageUrlString)")
-//
-//                    if let imageUrl = URL(string: imageUrlString) {
-//                        Logger.log("Valid URL created: \(imageUrl.absoluteString)")
-//                        // Download the image
-//                        downloadImage(from: imageUrl)
-//                    } else {
-//                        Logger.log("Failed to create URL from string: \(imageUrlString)")
-//                        showAlert(title: "Invalid URL", message: "The image URL provided is not valid")
-//                    }
-//                } else {
-//                    Logger.log("No imageUrl found in message body: \(messageBody)")
-//                    showAlert(title: "Missing Image", message: "No image URL was provided")
-//                }
-//            } else {
-//                Logger.log("Message body could not be parsed as dictionary: \(message.body)")
-//                showAlert(title: "Format Error", message: "The message format is incorrect")
-//            }
-    
-    // Method to download using WKDownload
-       private func downloadWithWKDownload(url: URL) {
-           Logger.log("Starting download from URL: \(url.absoluteString)")
-           
-           // Create a URLRequest with the image URL
-           let request = URLRequest(url: url)
-           
-           // Start the download process
-           if #available(iOS 14.5, *) {
-               // Use WKDownload on iOS 14.5 and later
-               webView.startDownload(using: request) { [weak self] download in
-                   guard let self = self else { return }
-                   
-                   // Store the download and URL for later use
-                   self.pendingDownloads[download] = url
-                   download.delegate = self
-                   Logger.log("Download started successfully")
-               }
-           } else {
-               // Fallback for earlier versions - direct download
-               directDownload(from: url)
-           }
-       }
-    // Fallback method for direct download (for iOS versions < 14.5)
-        private func directDownload(from url: URL) {
-            Logger.log("Using direct download for URL: \(url.absoluteString)")
-            
-            let session = URLSession.shared
-            let task = session.dataTask(with: url) { [weak self] (data, response, error) in
-                guard let self = self else { return }
-                
-                DispatchQueue.main.async {
-                    if let error = error {
-                        Logger.log("Download error: \(error.localizedDescription)")
-                        self.showAlert(title: "Download Failed", message: "Error: \(error.localizedDescription)")
-                        return
-                    }
-                    
-                    guard let data = data else {
-                        Logger.log("No data received")
-                        self.showAlert(title: "Download Failed", message: "No data received")
-                        return
-                    }
-                    
-                    // For images, create a UIImage and save to photo library
-                    if let image = UIImage(data: data) {
-                        self.requestPhotoLibraryPermission { granted in
-                            if granted {
-                                UIImageWriteToSavedPhotosAlbum(image, self, #selector(self.image(_:didFinishSavingWithError:contextInfo:)), nil)
-                            } else {
-                                self.showAlert(title: "Permission Denied", message: "Unable to save image without photo library access")
-                            }
-                        }
-                    } else {
-                        // For other file types, save to documents directory
-                        self.saveFileToDocuments(data: data, url: url)
-                    }
-                }
-            }
-            task.resume()
-        }
     
     
     private func showAlert(title: String, message: String) {
@@ -703,16 +510,13 @@ public class ICCWebView: UIViewController, WKNavigationDelegate, WKScriptMessage
         task.resume()
     }
     
-    
-    
     public func webView(_ webView: WKWebView, decidePolicyFor navigationAction: WKNavigationAction, decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {
         guard let url = navigationAction.request.url else {
             decisionHandler(.cancel)
             return
         }
         
-        
-        Logger.log("Navigation requested to: \(url.absoluteString)")
+        //Logger.log("Navigation requested to: \(url.absoluteString)")
         
         // Handle data URLs (base64 images)
         if url.absoluteString.hasPrefix("data:image") {
@@ -742,46 +546,7 @@ public class ICCWebView: UIViewController, WKNavigationDelegate, WKScriptMessage
             decisionHandler(.cancel)
             return
         }
-        
-        // Handle file downloads
-        let fileExtensions = ["jpg", "jpeg", "png", "gif", "pdf", "zip", "doc", "docx", "xls", "xlsx"]
-        if fileExtensions.contains(url.pathExtension.lowercased()) {
-            Logger.log("Detected navigation to file: \(url.absoluteString)")
-            
-            // Use direct download
-            let session = URLSession.shared
-            let task = session.dataTask(with: url) { [weak self] (data, response, error) in
-                guard let self = self else { return }
-                
-                DispatchQueue.main.async {
-                    if let error = error {
-                        Logger.log("Download error: \(error.localizedDescription)")
-                        self.showAlert(title: "Download Failed", message: "Error: \(error.localizedDescription)")
-                        return
-                    }
-                    
-                    guard let data = data else {
-                        Logger.log("No data received")
-                        return
-                    }
-                    
-                    // For images, save to photo library
-                    if let image = UIImage(data: data) {
-                        self.requestPhotoLibraryPermission { granted in
-                            if granted {
-                                UIImageWriteToSavedPhotosAlbum(image, self, #selector(self.image(_:didFinishSavingWithError:contextInfo:)), nil)
-                            }
-                        }
-                    }
-                }
-            }
-            task.resume()
-            
-            // Cancel navigation to prevent error
-            decisionHandler(.cancel)
-            return
-        }
-        
+
         // Regular navigation
         if url.absoluteString == baseUrlString {
             decisionHandler(.cancel)
@@ -790,51 +555,6 @@ public class ICCWebView: UIViewController, WKNavigationDelegate, WKScriptMessage
         }
     }
     
-    func startDownloadWithURLSession(url: URL) {
-        let task = URLSession.shared.downloadTask(with: url) { location, response, error in
-            guard let location = location, error == nil else {
-                print("Download error: \(error?.localizedDescription ?? "Unknown error")")
-                return
-            }
-
-            // Move file to Documents Directory
-            let fileManager = FileManager.default
-            let documentsPath = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first!
-            let destinationURL = documentsPath.appendingPathComponent(response?.suggestedFilename ?? "downloadedFile")
-
-            do {
-                try fileManager.moveItem(at: location, to: destinationURL)
-                print("File saved to: \(destinationURL)")
-            } catch {
-                print("File move error: \(error.localizedDescription)")
-            }
-        }
-        task.resume()
-    }
-    
-//    public func webView(_ webView: WKWebView, decidePolicyFor navigationAction: WKNavigationAction, decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {
-//
-//        // Ensure the URL is valid
-//        guard let url = navigationAction.request.url else {
-//            decisionHandler(.cancel)
-//            return
-//        }
-//        // Check if this is a download link by file extension
-//        let fileExtensions = ["jpg", "jpeg", "png", "gif", "pdf", "zip", "doc", "docx", "xls", "xlsx"]
-//        if fileExtensions.contains(url.pathExtension.lowercased()) {
-//            // This appears to be a file download, intercept it
-//            Logger.log("Detected file download: \(url.absoluteString)")
-//            downloadWithWKDownload(url: url)
-//            decisionHandler(.cancel) // Cancel navigation to prevent WebKit error
-//            return
-//        }
-//        if url.absoluteString == baseUrlString {
-//            decisionHandler(.cancel)
-//            // Allow other navigations
-//        } else {
-//            decisionHandler(.allow)
-//        }
-//    }
     @available(iOS 14.5, *)
         public func download(_ download: WKDownload, decideDestinationUsing response: URLResponse, suggestedFilename: String, completionHandler: @escaping (URL?) -> Void) {
             Logger.log("Download started: \(suggestedFilename)")
@@ -849,35 +569,7 @@ public class ICCWebView: UIViewController, WKNavigationDelegate, WKScriptMessage
             // Return the destination URL
             completionHandler(destinationURL)
         }
-        
-        // Called when download finishes
-        @available(iOS 14.5, *)
-        public func downloadDidFinish(_ download: WKDownload) {
-            Logger.log("Download finished successfully")
-            
-            // Get the original URL
-            guard let originalURL = pendingDownloads[download] else {
-                return
-            }
-            
-            // Clean up
-            pendingDownloads.removeValue(forKey: download)
-            
-            // Show success alert
-            DispatchQueue.main.async { [weak self] in
-                guard let self = self else { return }
-                
-                // Check if this is an image
-                if originalURL.pathExtension.lowercased() == "jpg" ||
-                   originalURL.pathExtension.lowercased() == "jpeg" ||
-                   originalURL.pathExtension.lowercased() == "png" ||
-                   originalURL.pathExtension.lowercased() == "gif" {
-                    self.showAlert(title: "Download Complete", message: "Image saved successfully")
-                } else {
-                    self.showAlert(title: "Download Complete", message: "File saved to Documents folder")
-                }
-            }
-        }
+
         
         // Called if download fails
         @available(iOS 14.5, *)
@@ -924,19 +616,6 @@ public class ICCWebView: UIViewController, WKNavigationDelegate, WKScriptMessage
             }
         }
         
-        
-//        // Show alert helper
-//        private func showAlert(title: String, message: String) {
-//            let alert = UIAlertController(
-//                title: title,
-//                message: message,
-//                preferredStyle: .alert
-//            )
-//            alert.addAction(UIAlertAction(title: "OK", style: .default))
-//            present(alert, animated: true)
-//        }
-
-
     
     func retrieveEncryptedToken() -> String? {
       let defaults = UserDefaults.standard
