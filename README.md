@@ -100,11 +100,20 @@ let user = ICCWrapped.User(
     stayInGameUri: "iccdev://stayinthegame"
 ```
 
-## Share and Download
+##Share and Download Features
+###1. Sharing of Images
+Images are handled natively through the iOS Share Sheet. When a user triggers an image share action, the SDK will present the standard iOS share sheet with available options for the user to share the image.
+###2. Downloading of Images
+###Image downloading is also handled natively by the SDK. When a user selects to download an image, it will be saved directly to the device's photo library.
 
-### 1. Share is handled Natively
-### 2. Download is also handled natively
-
+##Required Permissions
+###To enable image downloading functionality, you must add the following permission to your app's Info.plist:
+xmlCopy
+```
+    <key>NSPhotoLibraryAddUsageDescription</key>
+    <string>We need access to save images to your photo library when you download content from the ICC Wrapped experience.</string>
+```
+###This permission will prompt the user to allow your app to save images to their photo library the first time they attempt to download an image.
 
 ## Callbacks
 
