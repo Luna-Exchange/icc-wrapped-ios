@@ -88,6 +88,9 @@ class WeakRef<T: AnyObject> {
 
 @available(iOS 14.5, *)
 public class ICCWebView: UIViewController, WKNavigationDelegate, WKScriptMessageHandler, SFSafariViewControllerDelegate, WKDownloadDelegate {
+    public override var prefersStatusBarHidden: Bool {
+            return true
+        }
     
     private var pendingDownloads: [WKDownload: URL] = [:]
     private var urlList: [String] = []
@@ -106,8 +109,8 @@ public class ICCWebView: UIViewController, WKNavigationDelegate, WKScriptMessage
     public var name: String? { iccWrappedSDK.userData?.name }
     public var email: String? { iccWrappedSDK.userData?.email }
     
-    public typealias SignInWithIcc = (Bool) -> Void  // Define callback type for sign-in
-    public var signInWithIcc: SignInWithIcc?
+    public typealias SignInWithIccCompletion = (Bool) -> Void  // Define callback type for sign-in
+    public var signInWithIccCompletion: SignInWithIccCompletion?
     
     public typealias NavigateToICCAction = (UIViewController) -> Void
     public var navigateToICCAction: NavigateToICCAction?
@@ -140,6 +143,9 @@ public class ICCWebView: UIViewController, WKNavigationDelegate, WKScriptMessage
 
     public override func viewDidLoad() {
         super.viewDidLoad()
+        
+        edgesForExtendedLayout = .all
+        
         setupWebView()
         setupBackgroundImageView()
         setupActivityIndicator()
@@ -147,7 +153,6 @@ public class ICCWebView: UIViewController, WKNavigationDelegate, WKScriptMessage
         iccWrappedSDK.sharedWrappedView = self
         startSDKOperations()
     }
-
     func update(userData: UserData?) {
         startSDKOperations()
     }
@@ -156,6 +161,10 @@ public class ICCWebView: UIViewController, WKNavigationDelegate, WKScriptMessage
         webView = WKWebView()
         webView.navigationDelegate = self
         webView.translatesAutoresizingMaskIntoConstraints = false
+        webView.backgroundColor = UIColor.blue // Choose a color that matches your site
+        webView.scrollView.contentInset = .zero
+        webView.isOpaque = true
+        view.backgroundColor = UIColor.blue
         view.addSubview(webView)
         
         class Handler: NSObject, WKScriptMessageHandler {
@@ -177,11 +186,14 @@ public class ICCWebView: UIViewController, WKNavigationDelegate, WKScriptMessage
 
         
         NSLayoutConstraint.activate([
-            webView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            webView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            webView.topAnchor.constraint(equalTo: view.topAnchor),
-            webView.bottomAnchor.constraint(equalTo: view.bottomAnchor)
-        ])
+                webView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+                webView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+                webView.topAnchor.constraint(equalTo: view.topAnchor), // Use view.topAnchor instead of safeArea
+                webView.bottomAnchor.constraint(equalTo: view.bottomAnchor) // Use view.bottomAnchor
+            ])
+        if #available(iOS 11.0, *) {
+            webView.scrollView.contentInsetAdjustmentBehavior = .never
+        }
 #if DEBUG
         if #available(iOS 16.4, *) {
             
@@ -256,6 +268,22 @@ public class ICCWebView: UIViewController, WKNavigationDelegate, WKScriptMessage
                     // Reload webView with the second URL
                     //loadInitialURL()
                 }
+        
+        let cssInjection = """
+            var style = document.createElement('style');
+            style.innerHTML = `
+                body, html {
+                    margin: 0 !important;
+                    padding: 0 !important;
+                    width: 100% !important;
+                    height: 100% !important;
+                    overflow-x: hidden !important;
+                }
+            `;
+            document.head.appendChild(style);
+            """
+            
+            webView.evaluateJavaScript(cssInjection, completionHandler: nil)
         // Inject JavaScript to handle multiple events
         let script = """
             window.addEventListener('go-to-stay-in-the-game', function() {
@@ -368,7 +396,7 @@ public class ICCWebView: UIViewController, WKNavigationDelegate, WKScriptMessage
         case "loginIcc":
             Logger.log("Login Worked")
             //testDirectImageDownload()
-            signInWithIcc?(true)
+            signInWithIccCompletion?(true)
 
         case "downloadBase64Image":
                 Logger.log("Received 'downloadBase64Image' event")
@@ -672,14 +700,18 @@ public class ICCWrapped {
         
         // Create and configure the WebView controller
         let iccWebView = ICCWebView(environment: environment, urls: urls)
-        
+        iccWebView.modalPresentationStyle = .fullScreen
+        iccWebView.modalPresentationCapturesStatusBarAppearance = true
         // Update user data
         let userData = UserData(token: user.token, name: user.name, email: user.email)
         iccWrappedSDK.update(userData: userData)
         
         // Present the controller
         iccWebView.presentAndHandleCallbacks(from: viewController, animated: true, completion: completion)
+        
+        
     }
+    
 }
 
 @available(iOS 14.5, *)
