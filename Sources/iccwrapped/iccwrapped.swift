@@ -16,7 +16,6 @@ public class iccWrappedSDK {
         guard let wrappedView = sharedWrappedView else {
             return false
         }
-        //wrappedView.handleDeepLink(url)
         return true
     }
     
@@ -99,7 +98,7 @@ public class ICCWebView: UIViewController, WKNavigationDelegate, WKScriptMessage
     public var webView: WKWebView!
     public var isFirstLoad = true
     private var baseUrlString: String
-    private var UrlStringEncode: String
+    private var urlStringEncode: String
     private var callbackURL: String
     private var activityIndicator: UIActivityIndicatorView!
     private var backgroundImageView: UIImageView!
@@ -131,7 +130,7 @@ public class ICCWebView: UIViewController, WKNavigationDelegate, WKScriptMessage
         
         // Set up base URLs based on environment
         self.baseUrlString = environment.baseUrl
-        self.UrlStringEncode = "\(environment.baseUrl)/"
+        self.urlStringEncode = "\(environment.urlStringEncode)/"
         self.callbackURL = environment == .development ? "iccdev://" : "icc://"
         
         super.init(nibName: nil, bundle: nil)
@@ -182,14 +181,14 @@ public class ICCWebView: UIViewController, WKNavigationDelegate, WKScriptMessage
         userContentController.add(handler, name: "closeIccWrapped")
         userContentController.add(handler, name: "signInWithIcc")
         userContentController.add(handler, name: "loginIcc")
-        userContentController.add(handler, name: "downloadBase64Image") // Add this for base64 images
+        userContentController.add(handler, name: "downloadBase64Image")
 
         
         NSLayoutConstraint.activate([
                 webView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
                 webView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-                webView.topAnchor.constraint(equalTo: view.topAnchor), // Use view.topAnchor instead of safeArea
-                webView.bottomAnchor.constraint(equalTo: view.bottomAnchor) // Use view.bottomAnchor
+                webView.topAnchor.constraint(equalTo: view.topAnchor),
+                webView.bottomAnchor.constraint(equalTo: view.bottomAnchor)
             ])
         if #available(iOS 11.0, *) {
             webView.scrollView.contentInsetAdjustmentBehavior = .never
@@ -203,13 +202,12 @@ public class ICCWebView: UIViewController, WKNavigationDelegate, WKScriptMessage
     }
 
     func setupBackgroundImageView() {
-        // Initialize the background image view
         backgroundImageView = UIImageView(image: UIImage(named: "loadingpage.png"))
         backgroundImageView.contentMode = .scaleAspectFill
         backgroundImageView.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(backgroundImageView)
         
-        // Set up Auto Layout constraints to make the background image view full screen
+       
         NSLayoutConstraint.activate([
             backgroundImageView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
 
@@ -223,12 +221,12 @@ public class ICCWebView: UIViewController, WKNavigationDelegate, WKScriptMessage
         if #available(iOS 13.0, *) {
             activityIndicator = UIActivityIndicatorView(style: .large)
         } else {
-            // Fallback on earlier versions
+            activityIndicator = UIActivityIndicatorView(style: .large)
         }
         activityIndicator.translatesAutoresizingMaskIntoConstraints = false
+        activityIndicator.color = .white
         view.addSubview(activityIndicator)
         
-        // Center the activity indicator in the view
         NSLayoutConstraint.activate([
             activityIndicator.centerXAnchor.constraint(equalTo: view.centerXAnchor),
             activityIndicator.centerYAnchor.constraint(equalTo: view.centerYAnchor)
@@ -262,12 +260,7 @@ public class ICCWebView: UIViewController, WKNavigationDelegate, WKScriptMessage
         }
     
     public func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
-        
-        if isFirstLoad {
-                    isFirstLoad = false
-                    // Reload webView with the second URL
-                    //loadInitialURL()
-                }
+       
         
         let cssInjection = """
             var style = document.createElement('style');
@@ -284,7 +277,6 @@ public class ICCWebView: UIViewController, WKNavigationDelegate, WKScriptMessage
             """
             
             webView.evaluateJavaScript(cssInjection, completionHandler: nil)
-        // Inject JavaScript to handle multiple events
         let script = """
             window.addEventListener('go-to-stay-in-the-game', function() {
                 window.webkit.messageHandlers.goToStayInTheGame.postMessage(null);
@@ -365,18 +357,17 @@ public class ICCWebView: UIViewController, WKNavigationDelegate, WKScriptMessage
         webView.evaluateJavaScript(script, completionHandler: nil)
 
         activityIndicator.stopAnimating()
-        backgroundImageView.isHidden = true // Hide the background image when loading finishes
-        
+        backgroundImageView.isHidden = true
     }
 
     public func webView(_ webView: WKWebView, didStartProvisionalNavigation navigation: WKNavigation!) {
         activityIndicator.startAnimating()
-        backgroundImageView.isHidden = false // Show the background image when loading starts
+        backgroundImageView.isHidden = false
     }
 
     public func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {
         activityIndicator.stopAnimating()
-        backgroundImageView.isHidden = true // Hide the background image if loading fails
+        backgroundImageView.isHidden = true
     }
     
     public func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
@@ -437,7 +428,7 @@ public class ICCWebView: UIViewController, WKNavigationDelegate, WKScriptMessage
             // Show success message if needed
             let alert = UIAlertController(
                 title: "Image Saved",
-                message: "Your ICC Wrapped image has been saved to your photo library.",
+                message: "Your ICC Recapped image has been saved to your photo library.",
                 preferredStyle: .alert
             )
             alert.addAction(UIAlertAction(title: "OK", style: .default))
@@ -453,19 +444,19 @@ public class ICCWebView: UIViewController, WKNavigationDelegate, WKScriptMessage
       UIApplication.shared.open(url)
     }
     
-    func startSDKOperations(accountid: String? = nil, publickey: String? = nil) {
+    func startSDKOperations() {
         if let authToken = authToken {
-            encryptAuthToken(authToken: authToken) { [weak self] result in
-                guard let self = self else { return }
+            encryptAuthToken(authToken: authToken) { encryptedToken in
                 DispatchQueue.main.async {
-                    var urlString = "\(self.baseUrlString)?wrapped_access=\(authToken)"
-                    if self.isFirstLoad {
-                        urlString += "&icc_client=mobile_app"
-                    }
-                    if let url = URL(string: urlString) {
-                        let request = URLRequest(url: url)
-                        self.loadURL(urlString)
-                    }
+                    var urlString = "\(self.baseUrlString)?recapped_access=\(encryptedToken)"
+                            if self.isFirstLoad {
+                                urlString += "&icc_client=mobile_app"
+                            }
+                            if let url = URL(string: urlString) {
+                                let request = URLRequest(url: url)
+                                self.loadURL(urlString)
+                            }
+
                 }
             }
         }
@@ -484,18 +475,16 @@ public class ICCWebView: UIViewController, WKNavigationDelegate, WKScriptMessage
       }
     }
     
-
-    private func encryptAuthToken(authToken: String, completion: @escaping (Result<String, Error>) -> Void) {
-        // Prepare the request
-        guard let url = URL(string: UrlStringEncode) else {
-            completion(.failure(NSError(domain: "ICCWrapped", code: -1, userInfo: [NSLocalizedDescriptionKey: "Invalid URL"])))
+    private func encryptAuthToken(authToken: String, completion: @escaping (String) -> Void) {
+        
+        guard let url = URL(string: urlStringEncode) else {
+            Logger.log("Invalid URL string: \(urlStringEncode)")
             return
         }
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         
-        // Prepare the request body
         let requestBody: [String: String] = [
             "authToken": authToken,
             "name": name!,
@@ -503,40 +492,40 @@ public class ICCWebView: UIViewController, WKNavigationDelegate, WKScriptMessage
         ]
         
         do {
-            request.httpBody = try JSONSerialization.data(withJSONObject: requestBody)
+            let jsonData = try JSONSerialization.data(withJSONObject: requestBody, options: [])
+            request.httpBody = jsonData
         } catch {
-            completion(.failure(error))
+            Logger.log("Error serializing JSON: \(error.localizedDescription)")
             return
         }
         
-        // Make the request
         let task = URLSession.shared.dataTask(with: request) { data, response, error in
             if let error = error {
-                completion(.failure(error))
+                Logger.log("Network error: \(error.localizedDescription)")
                 return
             }
             
             guard let data = data else {
-                completion(.failure(NSError(domain: "ICCWrapped", code: -3, userInfo: [NSLocalizedDescriptionKey: "No data received"])))
+                Logger.log("No data received")
                 return
             }
             
             do {
-                if let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
+                if let json = try JSONSerialization.jsonObject(with: data, options: []) as? [String: Any],
                    let statusCode = json["statusCode"] as? Int, statusCode == 200,
                    let responseData = json["data"] as? [String: Any],
                    let encryptedToken = responseData["token"] as? String {
-                    // Call completion handler with encrypted token
-                    completion(.success(encryptedToken))
+                    completion(encryptedToken)
                 } else {
-                    completion(.failure(NSError(domain: "ICCWrapped", code: -4, userInfo: [NSLocalizedDescriptionKey: "Invalid response format"])))
+                    Logger.log("Error: Unable to parse response or token not found")
                 }
             } catch {
-                completion(.failure(error))
+                Logger.log("JSON parsing error: \(error.localizedDescription)")
             }
         }
         task.resume()
     }
+    
     
     public func webView(_ webView: WKWebView, decidePolicyFor navigationAction: WKNavigationAction, decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {
         guard let url = navigationAction.request.url else {
@@ -544,13 +533,10 @@ public class ICCWebView: UIViewController, WKNavigationDelegate, WKScriptMessage
             return
         }
         
-        //Logger.log("Navigation requested to: \(url.absoluteString)")
         
-        // Handle data URLs (base64 images)
         if url.absoluteString.hasPrefix("data:image") {
             Logger.log("Detected navigation to base64 image")
             
-            // Extract and process the base64 image
             let base64String = url.absoluteString
             
             if let range = base64String.range(of: ";base64,") {
@@ -570,12 +556,10 @@ public class ICCWebView: UIViewController, WKNavigationDelegate, WKScriptMessage
                 }
             }
             
-            // Cancel navigation to prevent error
             decisionHandler(.cancel)
             return
         }
 
-        // Regular navigation
         if url.absoluteString == baseUrlString {
             decisionHandler(.cancel)
         } else {
@@ -587,27 +571,22 @@ public class ICCWebView: UIViewController, WKNavigationDelegate, WKScriptMessage
         public func download(_ download: WKDownload, decideDestinationUsing response: URLResponse, suggestedFilename: String, completionHandler: @escaping (URL?) -> Void) {
             Logger.log("Download started: \(suggestedFilename)")
             
-            // Create a destination URL in the Documents directory
             let documentsDirectory = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
             let destinationURL = documentsDirectory.appendingPathComponent(suggestedFilename)
             
-            // Remove any existing file
             try? FileManager.default.removeItem(at: destinationURL)
             
-            // Return the destination URL
             completionHandler(destinationURL)
         }
 
         
-        // Called if download fails
         @available(iOS 14.5, *)
         public func download(_ download: WKDownload, didFailWithError error: Error, resumeData: Data?) {
             Logger.log("Download failed with error: \(error.localizedDescription)")
             
-            // Clean up
+       
             pendingDownloads.removeValue(forKey: download)
             
-            // Show error alert
             DispatchQueue.main.async { [weak self] in
                 self?.showAlert(title: "Download Failed", message: error.localizedDescription)
             }
@@ -619,12 +598,10 @@ public class ICCWebView: UIViewController, WKNavigationDelegate, WKScriptMessage
         self.dismiss(animated: true, completion: nil)
     }
     
-    // Save file to documents directory
         private func saveFileToDocuments(data: Data, url: URL) {
             // Extract filename from URL
             let filename = url.lastPathComponent
             
-            // Get documents directory
             guard let documentsDirectory = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first else {
                 Logger.log("Could not access documents directory")
                 showAlert(title: "Save Failed", message: "Could not access documents directory")
@@ -634,7 +611,6 @@ public class ICCWebView: UIViewController, WKNavigationDelegate, WKScriptMessage
             let fileURL = documentsDirectory.appendingPathComponent(filename)
             
             do {
-                // Write data to file
                 try data.write(to: fileURL)
                 Logger.log("File saved to: \(fileURL.path)")
                 showAlert(title: "Download Complete", message: "File saved to Documents folder")
@@ -656,7 +632,6 @@ public class ICCWebView: UIViewController, WKNavigationDelegate, WKScriptMessage
     }
 }
 
-// First, let's create a cleaner launch interface
 @available(iOS 14.5, *)
 public class ICCWrapped {
     
@@ -667,10 +642,18 @@ public class ICCWrapped {
         var baseUrl: String {
             switch self {
             case .development:
-                return "https://icc-wrapped-frontend.vercel.app/"
+                return "https://iccwrapped-ui-dev.aws.insomnialabs.xyz/"
+            case .production:
+                return "https://recapped.icc-cricket.com/"
+            }
+        }
+        var urlStringEncode: String {
+            switch self {
+            case .development:
+                return "https://iccwrapped-api-dev.aws.insomnialabs.xyz/auth/encode"
                 //return "https://www.pexels.com/"
             case .production:
-                return "https://wrapped.icc-cricket.com"
+                return "https://recapped-api.icc-cricket.com/auth/encode"
             }
         }
     }
@@ -687,7 +670,6 @@ public class ICCWrapped {
         }
     }
     
-    // Static launch method similar to Android's style
     public static func launch(
         from viewController: UIViewController,
         user: User,
@@ -695,28 +677,23 @@ public class ICCWrapped {
         stayInGameUri: String,
         completion: (() -> Void)? = nil
     ) {
-        // Create URLs configuration
         let urls = URLS(stayinthegame: stayInGameUri)
         
-        // Create and configure the WebView controller
         let iccWebView = ICCWebView(environment: environment, urls: urls)
         iccWebView.modalPresentationStyle = .fullScreen
         iccWebView.modalPresentationCapturesStatusBarAppearance = true
-        // Update user data
+
         let userData = UserData(token: user.token, name: user.name, email: user.email)
         iccWrappedSDK.update(userData: userData)
         
-        // Present the controller
         iccWebView.presentAndHandleCallbacks(from: viewController, animated: true, completion: completion)
-        
-        
     }
     
 }
 
 @available(iOS 14.5, *)
 extension ICCWebView {
-    // Permission request method
+
     func requestPhotoLibraryPermission(completion: @escaping (Bool) -> Void) {
         let status = PHPhotoLibrary.authorizationStatus()
         
@@ -736,7 +713,7 @@ extension ICCWebView {
             completion(false)
             
         case .limited:
-            // For iOS 14+, limited access might be enough for saving
+
             completion(true)
             
         @unknown default:
@@ -744,11 +721,10 @@ extension ICCWebView {
         }
     }
     
-    // Alert for denied permission
     private func showPermissionAlert() {
         let alert = UIAlertController(
             title: "Photo Library Access",
-            message: "ICC Wrapped needs permission to save images to your photo library. Please enable it in Settings.",
+            message: "ICC Recapped needs permission to save images to your photo library. Please enable it in Settings.",
             preferredStyle: .alert
         )
         
