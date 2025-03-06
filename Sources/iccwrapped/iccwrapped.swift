@@ -463,10 +463,7 @@ public class ICCWebView: UIViewController, WKNavigationDelegate, WKScriptMessage
             }
         }
         else {
-                Logger.log("Got here")
-                Logger.log(baseUrlString)
                 self.loadURL(baseUrlString)
-                
             }
         }
     
