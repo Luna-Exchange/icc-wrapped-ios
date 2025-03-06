@@ -38,7 +38,7 @@ public struct UserData {
     public var email: String
     public init(token: String, name: String, email: String) {
         self.token = token
-        self.name = name
+        self.name = name.isEmpty ? "user" : name
         self.email = email
     }
 }
@@ -445,8 +445,11 @@ public class ICCWebView: UIViewController, WKNavigationDelegate, WKScriptMessage
     }
     
     func startSDKOperations() {
-        if let authToken = authToken {
-            encryptAuthToken(authToken: authToken) { encryptedToken in
+        let hasValidToken = authToken != nil && !authToken!.isEmpty
+        let hasValidEmail = email != nil && !email!.isEmpty
+        
+        if hasValidToken && hasValidEmail{
+            encryptAuthToken(authToken: authToken!) { encryptedToken in
                 DispatchQueue.main.async {
                     var urlString = "\(self.baseUrlString)?recapped_access=\(encryptedToken)"
                             if self.isFirstLoad {
@@ -456,25 +459,53 @@ public class ICCWebView: UIViewController, WKNavigationDelegate, WKScriptMessage
                                 let request = URLRequest(url: url)
                                 self.loadURL(urlString)
                             }
-
                 }
             }
         }
         else {
-                
-                self.loadURL(baseUrlString)
-                
+            //self.loadURL(self.baseUrlString)
+               
+            self.clearWebViewState {
+                       self.loadURL(self.baseUrlString)
+                   }
             }
         }
     
     func loadURL(_ urlString: String) {
       if let url = URL(string: urlString) {
+        print(url)
         self.webView.load(URLRequest(url: url))
+          
       } else {
         Logger.log("Error: Invalid URL")
       }
     }
     
+    public func clearWebViewState(completion: @escaping () -> Void) {
+        // Method implementation remains the same
+        let cookieStore = webView.configuration.websiteDataStore.httpCookieStore
+        
+        cookieStore.getAllCookies { cookies in
+            for cookie in cookies {
+                cookieStore.delete(cookie, completionHandler: nil)
+            }
+            
+            // Clear all website data (cache, local storage, etc.)
+            let dataTypes = WKWebsiteDataStore.allWebsiteDataTypes()
+            let date = Date(timeIntervalSince1970: 0)
+            WKWebsiteDataStore.default().removeData(
+                ofTypes: dataTypes,
+                modifiedSince: date
+            ) {
+                // Update configuration to use a fresh data store
+                self.webView.configuration.websiteDataStore = WKWebsiteDataStore.default()
+                
+                Logger.log("WebView state cleared")
+                completion()
+            }
+        }
+    }
+
     private func encryptAuthToken(authToken: String, completion: @escaping (String) -> Void) {
         
         guard let url = URL(string: urlStringEncode) else {
@@ -642,9 +673,9 @@ public class ICCWrapped {
         var baseUrl: String {
             switch self {
             case .development:
-                return "https://iccwrapped-ui-dev.aws.insomnialabs.xyz/"
+                return "https://iccwrapped-ui-dev.aws.insomnialabs.xyz"
             case .production:
-                return "https://recapped.icc-cricket.com/"
+                return "https://recapped.icc-cricket.com"
             }
         }
         var urlStringEncode: String {
@@ -689,6 +720,23 @@ public class ICCWrapped {
         iccWebView.presentAndHandleCallbacks(from: viewController, animated: true, completion: completion)
     }
     
+    
+    
+}
+@available(iOS 14.5, *)
+extension ICCWrapped {
+    // Add a logout method
+    public static func logout() {
+        // Clear the stored user data
+        iccWrappedSDK.update(userData: nil)
+        
+        // Clear WebView state if available
+        if let webView = iccWrappedSDK.sharedWrappedView {
+            webView.clearWebViewState {
+                Logger.log("Logged out and WebView state cleared")
+            }
+        }
+    }
 }
 
 @available(iOS 14.5, *)
