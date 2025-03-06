@@ -38,7 +38,7 @@ public struct UserData {
     public var email: String
     public init(token: String, name: String, email: String) {
         self.token = token
-        self.name = name
+        self.name = name.isEmpty ? "user" : name
         self.email = email
     }
 }
@@ -445,8 +445,11 @@ public class ICCWebView: UIViewController, WKNavigationDelegate, WKScriptMessage
     }
     
     func startSDKOperations() {
-        if let authToken = authToken {
-            encryptAuthToken(authToken: authToken) { encryptedToken in
+        let hasValidToken = authToken != nil && !authToken!.isEmpty
+        let hasValidEmail = email != nil && !email!.isEmpty
+        
+        if hasValidToken && hasValidEmail{
+            encryptAuthToken(authToken: authToken!) { encryptedToken in
                 DispatchQueue.main.async {
                     var urlString = "\(self.baseUrlString)?recapped_access=\(encryptedToken)"
                             if self.isFirstLoad {
@@ -456,12 +459,12 @@ public class ICCWebView: UIViewController, WKNavigationDelegate, WKScriptMessage
                                 let request = URLRequest(url: url)
                                 self.loadURL(urlString)
                             }
-
                 }
             }
         }
         else {
-                
+                Logger.log("Got here")
+                Logger.log(baseUrlString)
                 self.loadURL(baseUrlString)
                 
             }
@@ -469,12 +472,14 @@ public class ICCWebView: UIViewController, WKNavigationDelegate, WKScriptMessage
     
     func loadURL(_ urlString: String) {
       if let url = URL(string: urlString) {
+        print(url)
         self.webView.load(URLRequest(url: url))
+          
       } else {
         Logger.log("Error: Invalid URL")
       }
     }
-    
+
     private func encryptAuthToken(authToken: String, completion: @escaping (String) -> Void) {
         
         guard let url = URL(string: urlStringEncode) else {
@@ -642,9 +647,9 @@ public class ICCWrapped {
         var baseUrl: String {
             switch self {
             case .development:
-                return "https://iccwrapped-ui-dev.aws.insomnialabs.xyz/"
+                return "https://iccwrapped-ui-dev.aws.insomnialabs.xyz"
             case .production:
-                return "https://recapped.icc-cricket.com/"
+                return "https://recapped.icc-cricket.com"
             }
         }
         var urlStringEncode: String {
