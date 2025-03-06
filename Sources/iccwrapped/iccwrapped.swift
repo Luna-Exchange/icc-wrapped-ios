@@ -472,7 +472,6 @@ public class ICCWebView: UIViewController, WKNavigationDelegate, WKScriptMessage
     
     func loadURL(_ urlString: String) {
       if let url = URL(string: urlString) {
-        print(url)
         self.webView.load(URLRequest(url: url))
           
       } else {
